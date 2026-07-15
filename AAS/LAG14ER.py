@@ -1,5 +1,10 @@
 from basyx.aas import model
 from basyx.aas.adapter import aasx
+from LAG14ER_Submodel.nameplate import submodel as nameplate_submodel
+from LAG14ER_Submodel.handover import submodel as handover_submodel
+from LAG14ER_Submodel.techdata import submodel as techdata_submodel
+from LAG14ER_Submodel.carbon import submodel as carbon_submodel
+from LAG14ER_Submodel.maintenance import submodel as maintenance_submodel
 
 
 # create the AAS containing AssetInformation
@@ -25,20 +30,15 @@ ass = model.AssetAdministrationShell(
         revision='0'
     ),
     submodel={
-        model.ModelReference((model.Key(model.KeyTypes.SUBMODEL, 'https://www.afriso.com/submodel/nameplate/LAG14ER'),), model.Submodel),
-        model.ModelReference((model.Key(model.KeyTypes.SUBMODEL, 'https://www.afriso.com/submodel/handover/LAG14ER'),), model.Submodel),
-        model.ModelReference((model.Key(model.KeyTypes.SUBMODEL, 'https://www.afriso.com/submodel/techdata/LAG14ER'),), model.Submodel),
-        model.ModelReference((model.Key(model.KeyTypes.SUBMODEL, 'https://www.afriso.com/submodel/carbon/LAG14ER'),), model.Submodel),
-        model.ModelReference((model.Key(model.KeyTypes.SUBMODEL, 'https://www.afriso.com/submodel/maintenance/LAG14ER'),), model.Submodel),
+        model.ModelReference.from_referable(nameplate_submodel),
+        model.ModelReference.from_referable(handover_submodel),
+        model.ModelReference.from_referable(techdata_submodel),
+        model.ModelReference.from_referable(carbon_submodel),
+        model.ModelReference.from_referable(maintenance_submodel),
     },
     derived_from=None,
 )
 
 # create the Submodel object
-
-
-
-
-
 
 print("AAS Environment exported")
