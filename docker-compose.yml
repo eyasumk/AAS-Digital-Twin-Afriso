@@ -1,51 +1,86 @@
-version: "3.8"
-
 services:
   mongo:
-    image: docker.io/library/mongo:7
     container_name: mongo
+    image: mongo:7
+    restart: unless-stopped
     ports:
       - "27017:27017"
-    volumes:
-      - ./data/mongo:/data/db:Z
-
-  aas-env:
-    image: docker.io/eclipsebasyx/aas-environment:2.0.0-SNAPSHOT
-    container_name: aas-env
-    depends_on:
-      - mongo
     environment:
-      - BASYX_BACKEND=MongoDB
-      - SPRING_DATA_MONGODB_HOST=mongo
-      - SPRING_DATA_MONGODB_PORT=27017
+      MONGO_INITDB_ROOT_USERNAME: mongoAdmin
+      MONGO_INITDB_ROOT_PASSWORD: mongoPassword
+    healthcheck:
+      test:
+        ["CMD", "mongosh", "--username", "mongoAdmin", "--password", "mongoPassword", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  aas-environment:
+    container_name: aas-environment
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-05
+    restart: unless-stopped
     ports:
       - "8081:8081"
-
-  aas-registry:
-    image: docker.io/eclipsebasyx/aas-registry-log-mongodb:2.0.0-SNAPSHOT
-    container_name: aas-registry
+    volumes:
+      - ./basyx/application.properties:/application/application.properties:ro
+      - ./aas:/application/aas:ro
+      - ./basyx/rbac_rules.json:/config/rbac_rules.json:ro
     depends_on:
-      - mongo
-    environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017
-    ports:
-      - "8083:8080"
+      mongo:
+        condition: service_healthy
 
-  submodel-registry:
-    image: docker.io/eclipsebasyx/submodel-registry-log-mongodb:2.0.0-SNAPSHOT
-    container_name: submodel-registry
-    depends_on:
-      - mongo
-    environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017
-    ports:
-      - "8084:8080"
-
-  aas-web-ui:
-    image: docker.io/eclipsebasyx/aas-gui:latest
+  aas-ui:
     container_name: aas-web-ui
-    environment:
-      - ALLOW_EDITING=true
-      - ALLOW_UPLOADING=true
+    image: eclipsebasyx/aas-gui:latest
+    pull_policy: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      ENDPOINT_CONFIG_AVAILABLE: "false"
+      ALLOW_EDITING: "true"
+      ALLOW_UPLOADING: "true"
+      ALLOW_LOGOUT: "true"
+      AAS_DISCOVERY_PATH: "http://localhost:8084"
+      AAS_REGISTRY_PATH: "http://localhost:8083"
+      SUBMODEL_REGISTRY_PATH: "http://localhost:8084"
+      AAS_REPO_PATH: "http://localhost:8081"
+      SUBMODEL_REPO_PATH: "http://localhost:8081"
+      CD_REPO_PATH: "http://localhost:8081"
+      SM_VIEWER_EDITOR: "true"
+      START_PAGE_ROUTE_NAME: AASEditor
+    volumes:
+      - ./config/basyx-infra.yml:/basyx-infra.yml:ro
+    depends_on:
+      aas-environment:
+        condition: service_started
+
+  aas-registry:
+    container_name: aas-registry
+    image: eclipsebasyx/aas-registry-log-mongodb:2.0.0-milestone-13
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      SERVER_PORT: 8080
+    volumes:
+      - ./basyx/aas-registry.yml:/workspace/config/application.yml:ro
+      - ./basyx/static/swagger-initializer.js:/workspace/BOOT-INF/classes/META-INF/resources/webjars/swagger-ui/5.32.2/swagger-initializer.js
+      - ./basyx/rbac_rules_registry.json:/config/rbac_rules.json:ro
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  submodel-registry:
+    container_name: submodel-registry
+    image: eclipsebasyx/submodel-registry-log-mongodb:2.0.0-SNAPSHOT
+    restart: unless-stopped
+    ports:
+      - "8084:8080"
+    environment:
+      SERVER_PORT: 8080
+    volumes:
+      - ./basyx/submodel-registry.yml:/workspace/config/application.yml:ro
+    depends_on:
+      mongo:
+        condition: service_healthy
