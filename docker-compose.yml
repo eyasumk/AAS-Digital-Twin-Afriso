@@ -3,11 +3,15 @@ services:
     container_name: mongo
     image: mongo:7
     restart: unless-stopped
-    ports:
-      - "27017:27017"
+    # ports:
+    #   - "27017:27017" //don't expose it outside.
     environment:
-      MONGO_INITDB_ROOT_USERNAME: mongoAdmin
-      MONGO_INITDB_ROOT_PASSWORD: mongoPassword
+      MONGO_INITDB_ROOT_USERNAME: mongoAdmin #need to save in env file
+      MONGO_INITDB_ROOT_PASSWORD: mongoPassword #need to save in env file
+    volumes:
+      - ./data/mongodb:/data/db
+    networks: 
+      - backend
     healthcheck:
       test:
         ["CMD", "mongosh", "--username", "mongoAdmin", "--password", "mongoPassword", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
@@ -21,6 +25,10 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8081"
+    environment:
+      BASYX_CORS_ALLOWED_ORIGINS: "http://localhost:3000" #need to save in env file
+      BASYX_CORS_ALLOWED_METHODS: "GET,POST,PATCH,DELETE,PUT,OPTIONS,HEAD"
+      SPRING_DATA_MONGODB_URI: "mongodb://mongoAdmin:mongoPassword@mongo:27017/aasenvironment?authSource=admin" #need to change mongoAdmin->${DB_USER} and mongoPassword->${DB_PASSWORD}
     # volumes:
     #   - ./basyx/application.properties:/application/application.properties:ro
     #   - ./aas:/application/aas:ro
@@ -28,11 +36,14 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+    networks: 
+      - backend
+      - frontend
 
   aas-ui:
     container_name: aas-web-ui
     image: eclipsebasyx/aas-gui:latest
-    pull_policy: always
+    pull_policy: always #use the latest version of the image
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -54,7 +65,9 @@ services:
     depends_on:
       aas-environment:
         condition: service_started
-
+    networks: 
+      - frontend
+  
   aas-registry:
     container_name: aas-registry
     image: eclipsebasyx/aas-registry-log-mongodb:2.0.0-milestone-13
@@ -63,13 +76,19 @@ services:
       - "8083:8080"
     environment:
       SERVER_PORT: 8080
+      SPRING_DATA_MONGODB_URI: "mongodb://mongoAdmin:mongoPassword@mongo:27017/aasregistry?authSource=admin" #need to change also
+      BASYX_CORS_ALLOWED_ORIGINS: "http://localhost:3000" #need to save in env file
+      BASYX_CORS_ALLOWED_METHODS: "GET,POST,PATCH,DELETE,PUT,OPTIONS,HEAD"
     # volumes:
-    #   - ./basyx/aas-registry.yml:/workspace/config/application.yml:ro
-    #   - ./basyx/static/swagger-initializer.js:/workspace/BOOT-INF/classes/META-INF/resources/webjars/swagger-ui/5.32.2/swagger-initializer.js
-    #   - ./basyx/rbac_rules_registry.json:/config/rbac_rules.json:ro
+      # - ./basyx/aas-registry.yml:/workspace/config/application.yml:ro
+      # - ./basyx/static/swagger-initializer.js:/workspace/BOOT-INF/classes/META-INF/resources/webjars/swagger-ui/5.32.2/swagger-initializer.js
+      # - ./basyx/rbac_rules_registry.json:/config/rbac_rules.json:ro
     depends_on:
       mongo:
         condition: service_healthy
+    networks: 
+      - backend
+      - frontend
 
   submodel-registry:
     container_name: submodel-registry
@@ -79,8 +98,17 @@ services:
       - "8084:8080"
     environment:
       SERVER_PORT: 8080
+      SPRING_DATA_MONGODB_URI: "mongodb://mongoAdmin:mongoPassword@mongo:27017/smregistry?authSource=admin" #need to change also .
+      BASYX_CORS_ALLOWED_ORIGINS: "http://localhost:3000" #need to save in env file
+      BASYX_CORS_ALLOWED_METHODS: "GET,POST,PATCH,DELETE,PUT,OPTIONS,HEAD"
     # volumes:
-    #   - ./basyx/submodel-registry.yml:/workspace/config/application.yml:ro
+      # - ./basyx/submodel-registry.yml:/workspace/config/application.yml:ro
     depends_on:
       mongo:
         condition: service_healthy
+    networks: 
+      - backend
+      - frontend
+networks:
+  backend:
+  frontend:
