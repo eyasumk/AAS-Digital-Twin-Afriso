@@ -18,3 +18,9 @@ This project aims to build and manage Asset Administration Shells (AAS) for Afri
   - `Technical Data`
   - `Carbon Footprint`
   - `Maintenance Instructions`
+
+
+# how to convert to json
+1. pip install pandas openpyxl
+
+2. 

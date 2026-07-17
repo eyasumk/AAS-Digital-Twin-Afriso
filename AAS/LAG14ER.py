@@ -1,7 +1,19 @@
 import os
+import pandas as panda
 from basyx.aas.adapter.json import read_aas_json_file
 from basyx.aas.adapter import aasx
 from basyx.aas.model import DictObjectStore
+
+
+#read xlsx file.
+df = panda.read_excel("../LAG14ER.xlsx")
+
+# parsing 
+
+
+#to json
+df.to_json("../LAG14ER.json", orient='records', indent=4)
+
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(base_dir, "..", "LAG14ER.json")
