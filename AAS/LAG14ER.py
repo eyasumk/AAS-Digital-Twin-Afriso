@@ -42,12 +42,12 @@ def main():
                         val = val.split('@')[0]
                     value_map[str(id_short)] = val
 
-    print(f"-> 총 {len(value_map)}개의 데이터를 엑셀에서 찾았습니다!")
+    print(f"Number of data from excel: {len(value_map)}")
     for v in value_map:
         print(f"{v}:{value_map[v]}\n")
 
     print("2. 템플릿 JSON 파일에 값을 덮어씁니다...")
-    # 2. 마스터 템플릿 JSON 불러오기
+
     with open(template_json_path, "r", encoding="utf-8") as f:
         aas_data = json.load(f)
 
@@ -81,14 +81,11 @@ def main():
 
     replace_values(aas_data)
 
-    # 4. 변환된 데이터를 원래 JSON 파일명으로 저장
+    # converting to json file
     with open(output_json_path, "w", encoding="utf-8") as f:
         json.dump(aas_data, f, ensure_ascii=False, indent=2)
 
-    print("✅ 엑셀 데이터 -> JSON 변환 완료!")
-
-    print("3. 완성된 JSON을 읽어서 AASX 파일로 굽습니다...")
-    # 5. 변환된 JSON을 읽어서 AASX 생성
+    # reading json file and make object store
     with open(output_json_path, "r", encoding="utf-8") as f:
         object_store = DictObjectStore(read_aas_json_file(f))
 
@@ -104,6 +101,6 @@ def main():
             write_json=True
         )
 
-    print(f"✅ AASX 패키지 생성 완료! -> {aasx_path}")
+    print(f"----------------------------------------- aasx created : ----------------------------------------- {aasx_path}")
 if __name__ == '__main__':
     main()
