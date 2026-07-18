@@ -46,8 +46,6 @@ def main():
     for v in value_map:
         print(f"{v}:{value_map[v]}\n")
 
-    print("2. 템플릿 JSON 파일에 값을 덮어씁니다...")
-
     with open(template_json_path, "r", encoding="utf-8") as f:
         aas_data = json.load(f)
 
@@ -90,7 +88,7 @@ def main():
         object_store = DictObjectStore(read_aas_json_file(f))
 
     file_store = aasx.DictSupplementaryFileContainer()
-    aasx_path = os.path.join(base_dir, "LAG14ER.aasx")
+    aasx_path = os.path.join("..","aasx", "LAG14ER.aasx")
 
     with aasx.AASXWriter(aasx_path) as writer:
         writer.write_aas_objects(
