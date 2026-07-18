@@ -20,31 +20,31 @@ def main():
     template_json_path = os.path.join(base_dir, "..", "json_template", "LAG14ER_Template.json")
     output_json_path = os.path.join(base_dir, "..","output_json","LAG14ER_output.json")
 
-    # 1. 엑셀의 모든 시트를 읽어서 값을 딕셔너리로 추출 (idShort -> Value)
     excel_data = panda.read_excel(excel_path, sheet_name=None, header=4)
     value_map = {}
      
     for sheets, table_data in excel_data.items():
-        print(f"\n--- [시트 이름: {sheets}] 의 기둥(Header) 목록 ---")
-        print(table_data.columns.tolist())
+        #print(table_data.columns.tolist())
         
         if 'Element Name (idShort)' in table_data.columns and 'Actual Value' in table_data.columns:
             for index, row in table_data.iterrows():
-                print(f"index: {index}\n")
-                print(f"row: {row}\n")
+                #print(f"index: {index}\n")
+                #print(f"row: {row}\n")
                 id_short = row['Element Name (idShort)']
                 val = row['Actual Value']
-                print(f"\nid_short: {id_short}\n")
-                print(f"\nval: {val}\n")
-                
-                # id_short가 존재하고 값이 비어있지 않은 경우 매핑
+                #print(f"\nid_short: {id_short}\n")
+                #print(f"\nval: {val}\n")
+
+                # if id_short and val is not empty
                 if panda.notna(id_short) and panda.notna(val):
-                    # '@de', '@en' 등의 언어 태그가 문자열 끝에 붙어있으면 제거
+                    # val is a instance of str class and '@de', '@en' eliminating if it exists
                     if isinstance(val, str) and ('@de' in val or '@en' in val):
                         val = val.split('@')[0]
                     value_map[str(id_short)] = val
 
     print(f"-> 총 {len(value_map)}개의 데이터를 엑셀에서 찾았습니다!")
+    for v in value_map:
+        print(f"{v}:{value_map[v]}\n")
 
     print("2. 템플릿 JSON 파일에 값을 덮어씁니다...")
     # 2. 마스터 템플릿 JSON 불러오기
