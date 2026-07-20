@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AASX Package Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    
+    <style>
+        :root {
+            --md-primary: #6200ee;
+            --md-primary-hover: #3700b3;
+            --md-surface: #ffffff;
+            --md-background: #f5f5f6;
+            --md-on-surface: #212121;
+            --md-border: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--md-background);
+            color: var(--md-on-surface);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--md-surface);
+            width: 100%;
+            max-width: 550px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 32px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .header span.icon {
+            font-size: 48px;
+            color: var(--md-primary);
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .upload-group {
+            margin-bottom: 20px;
+        }
+
+        .upload-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #444;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .file-dropzone {
+            border: 2px dashed var(--md-border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            background-color: #fafafa;
+        }
+
+        .file-dropzone:hover {
+            border-color: var(--md-primary);
+            background-color: #f0e6ff;
+        }
+
+        .file-dropzone input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-dropzone .dz-icon {
+            font-size: 32px;
+            color: #757575;
+        }
+
+        .file-dropzone .file-name {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+            margin-top: 6px;
+            word-break: break-all;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--md-primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 24px;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--md-primary-hover);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-submit:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <span class="material-icons-outlined icon">build_circle</span>
+        <h1>AASX Generator</h1>
+        <p>Upload your Excel data and JSON template to generate an AASX package.</p>
+    </div>
+
+    <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data">
+        
+        <div class="upload-group">
+            <label class="upload-label">Excel File (.xlsx)</label>
+            <div class="file-dropzone" id="excelDropzone">
+                <span class="material-icons-outlined dz-icon">table_chart</span>
+                <div class="file-name" id="excelLabel">Choose or drag .xlsx file here</div>
+                <input type="file" name="excel_file" accept=".xlsx" required onchange="updateLabel(this, 'excelLabel')">
+            </div>
+        </div>
+
+        <div class="upload-group">
+            <label class="upload-label">JSON Template (.json)</label>
+            <div class="file-dropzone" id="jsonDropzone">
+                <span class="material-icons-outlined dz-icon">code</span>
+                <div class="file-name" id="jsonLabel">Choose or drag .json template here</div>
+                <input type="file" name="json_file" accept=".json" required onchange="updateLabel(this, 'jsonLabel')">
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+            <div class="spinner" id="btnSpinner"></div>
+            <span class="material-icons-outlined" id="btnIcon">auto_awesome</span>
+            <span id="btnText">Generate & Download AASX</span>
+        </button>
+    </form>
+</div>
+
+<script>
+    function updateLabel(input, labelId) {
+        const label = document.getElementById(labelId);
+        if (input.files && input.files[0]) {
+            label.textContent = input.files[0].name;
+            label.style.color = "var(--md-primary)";
+        }
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        const spinner = document.getElementById('btnSpinner');
+        const icon = document.getElementById('btnIcon');
+        const text = document.getElementById('btnText');
+
+        btn.disabled = true;
+        spinner.style.display = 'block';
+        icon.style.display = 'none';
+        text.textContent = 'Generating AASX...';
+
+        // Reset button state after delay to allow re-downloads
+        setTimeout(() => {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+            icon.style.display = 'inline-block';
+            text.textContent = 'Generate & Download AASX';
+        }, 4000);
+    });
+</script>
+
+</body>
+</html>
