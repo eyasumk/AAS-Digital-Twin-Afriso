@@ -8,17 +8,13 @@ from basyx.aas.adapter import aasx
 from basyx.aas.model import DictIdentifiableStore
 #print(help(DictObjectStore))
 
-def main():
-    
+def process_excel(excel_path):
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    print(f"base_dir: {base_dir}")
+    file_name = os.path.basename(excel_path).replace(".xlsx", "")
     
-    excel_path = os.path.join(base_dir, "..", "xlsx","LAG14ER.xlsx")
-    print(f"excel_path: {excel_path}")
-
     #to read empty template json file
-    template_json_path = os.path.join(base_dir, "..", "json_template", "LAG14ER_Template.json")
-    output_json_path = os.path.join(base_dir, "..","output_json","LAG14ER_output.json")
+    template_json_path = os.path.join(base_dir, "..", "json_template", f"{file_name}_Template.json")
+    output_json_path = os.path.join(base_dir, "..","output_json", f"{file_name}_output.json")
 
     excel_data = panda.read_excel(excel_path, sheet_name=None, header=4)
     value_map = {}
@@ -55,15 +51,12 @@ def main():
     with open(template_json_path, "r", encoding="utf-8") as f:
         aas_data = json.load(f)
 
-    # 3. 재귀 함수로 JSON 전체를 뒤져서 idShort가 매핑 테이블에 있으면 값을 교체
     def replace_values(node):
         if isinstance(node, dict):
-            # 현재 노드에 'idShort'와 'value'가 모두 있으면 교체 및 청소 시도
             if "idShort" in node and "value" in node and "modelType" in node:
                 key = node["idShort"]
                 model_type = node["modelType"]
                 
-                # 1. 바구니에 진짜 데이터가 있으면 그걸로 덮어쓰기
                 if key in value_map:
                     if model_type in ["Property", "File"]:
                         node["value"] = str(value_map[key])
@@ -73,15 +66,11 @@ def main():
                             if key in lang_map:
                                 node["value"][0]["language"] = lang_map[key]
                 
-                # 2. 바구니에 진짜 데이터가 없으면 (엑셀이 빈칸이면) 말단 데이터의 예시만 통째로 삭제해 버리기!
                 else:
                     if model_type in ["Property", "File", "MultiLanguageProperty"]:
                         if "value" in node:
                             del node["value"]
                 
-                # 만약 SubmodelElementList나 Collection이면 그 자체를 문자열로 덮어쓰면 안 됩니다!
-                
-            # 하위 노드 계속 탐색
             for k, v in node.items():
                 replace_values(v)
             
@@ -100,7 +89,7 @@ def main():
         object_store = DictIdentifiableStore(read_aas_json_file(f))
 
     file_store = aasx.DictSupplementaryFileContainer()
-    aasx_path = os.path.join(base_dir, "..", "aasx", "LAG14ER.aasx")
+    aasx_path = os.path.join(base_dir, "..", "aasx", f"{file_name}.aasx")
 
     with aasx.AASXWriter(aasx_path) as writer:
         writer.write_aas_objects(
@@ -116,10 +105,19 @@ def main():
     import requests
     upload_url = "http://localhost:8081/upload"
     
-    with open(aasx_path, "rb") as f:
-        #(multipart/form-data)
-        res = requests.post(upload_url, files={"file": f})
-        print(f"server upload result: {res.status_code} - {res.text}")
+    try:
+        with open(aasx_path, "rb") as f:
+            #(multipart/form-data)
+            res = requests.post(upload_url, files={"file": f})
+            print(f"server upload result: {res.status_code} - {res.text}")
+    except requests.exceptions.ConnectionError:
+        print(f"Warning: Failed to connect to server at {upload_url}. Is the server running?")
+    except Exception as e:
+        print(f"Warning: Failed to upload file to {upload_url} - {e}")
 
 if __name__ == '__main__':
-    main()
+    import os
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    default_excel = os.path.join(base_dir, "..", "xlsx", "LAG14ER.xlsx")
+    if os.path.exists(default_excel):
+        process_excel(default_excel)
